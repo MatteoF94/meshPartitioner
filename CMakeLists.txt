@@ -3,4 +3,22 @@ project(meshPartitioner)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(meshPartitioner main.cpp)
+find_package(CGAL REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system filesystem)
+
+include_directories(
+                        ${CGAL_INCLUDE_DIRS}
+                        include/
+                        )
+
+file(GLOB_RECURSE meshPart_SOURCE
+                    src/*cpp
+                    main.cpp
+                    )
+
+add_executable(meshPartitioner ${meshPart_SOURCE})
+
+target_link_libraries(meshPartitioner
+                        ${CGAL_LIBRARY}
+                        ${Boost_LIBRARIES}
+                        )
