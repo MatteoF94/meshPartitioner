@@ -6,9 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(CGAL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 
+add_subdirectory(labelPartitioner)
+
 include_directories(
                         ${CGAL_INCLUDE_DIRS}
                         include/
+                        labelPartitioner/include
                         )
 
 file(GLOB_RECURSE meshPart_SOURCE
@@ -19,6 +22,7 @@ file(GLOB_RECURSE meshPart_SOURCE
 add_executable(meshPartitioner ${meshPart_SOURCE})
 
 target_link_libraries(meshPartitioner
+                        labelPartitioner
                         ${CGAL_LIBRARY}
                         ${Boost_LIBRARIES}
                         )
