@@ -7,6 +7,7 @@
 #include <boost/graph/graph_utility.hpp>
 #include <MeshReducer.h>
 #include <GraphManipulator.h>
+#include <SimMatrixHandler.h>
 
 typedef CGAL::Dual<Mesh> Dual;
 typedef boost::graph_traits<Dual>::edge_descriptor edge_descriptor;
@@ -62,7 +63,6 @@ void labeledMeshTest()
     InputManager inputManager;
     Mesh mesh;
     inputManager.readMeshFromOff("../data/flat.off", mesh);
-    std::cout << mesh.num_faces() << std::endl;
     MeshReducer meshReducer;
     std::vector<unsigned int> miao = {0,1,2,1,2,0,0,1,0,0,0,1,2};
     std::vector<unsigned int> ola(13,0);
@@ -70,16 +70,23 @@ void labeledMeshTest()
     //for(auto elem : ola)
       //  std::cout << elem << std::endl;
 
-    //boost::print_graph(miaso);
+    boost::print_graph(miaso);
 
     GraphManipulator manipulator;
-    manipulator.mapElementsToReducedGraph(miaso,ola);
+    std::unordered_map<gNodeDsc,std::deque<unsigned int>> map = manipulator.mapElementsToReducedGraph(miaso,ola);
+    std::vector<unsigned int> reducedNodesLabels = manipulator.mapReducedGraphToLabels(map,miao);
+    SimMatrixHandler simMatrixHandler;
+    std::string matFilename("../data/simMatrixTest.txt");
+    Eigen::MatrixXd simMat = simMatrixHandler.readMatrix(matFilename);
+    Eigen::MatrixXd simGraph = simMatrixHandler.buildGraphSimMatrix(miaso,reducedNodesLabels,simMat);
+    std::cout << simGraph << std::endl;
 }
 
 int main() {
 
     //labeledGraphTest();
-    //labeledMeshTest();
+    labeledMeshTest();
+    return 0;
 
     InputManager inputManager;
     Mesh mesh;

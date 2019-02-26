@@ -34,3 +34,21 @@ std::unordered_map<gNodeDsc,std::deque<unsigned int>> GraphManipulator::mapEleme
 
     return reducedToOriginalMap;
 }
+
+std::vector<unsigned int> GraphManipulator::mapReducedGraphToLabels(
+        const std::unordered_map<gNodeDsc, std::deque<unsigned int>> &reducedToOriginalMap,
+        const std::vector<unsigned int> &labels)
+{
+    std::vector<unsigned int> reducedNodesLabels(reducedToOriginalMap.size(),0);
+
+    for (auto &mapIt : reducedToOriginalMap)
+    {
+        gNodeDsc currReducedNode = mapIt.first;
+        std::deque<unsigned int> currNodes = mapIt.second;
+        unsigned int currLabel = labels[currNodes.back()];
+        reducedNodesLabels[currReducedNode] = currLabel;
+    }
+
+    return reducedNodesLabels;
+}
+

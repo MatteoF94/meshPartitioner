@@ -1,6 +1,14 @@
-//
-// Created by matteo on 25/02/19.
-//
+/********************************************
+ *
+ * Copyright (C) 2018 Matteo Frosi
+ *
+ ********************************************/
+
+/**
+ * @file MeshReducer.h
+ * @author Matteo Frosi
+ * @date 24 feb 2019
+ */
 
 #ifndef MESHPARTITIONER_MESHREDUCER_H
 #define MESHPARTITIONER_MESHREDUCER_H
