@@ -8,6 +8,7 @@
 #include <MeshReducer.h>
 #include <GraphManipulator.h>
 #include <SimMatrixHandler.h>
+#include <NormSpectralClustering.h>
 
 typedef CGAL::Dual<Mesh> Dual;
 typedef boost::graph_traits<Dual>::edge_descriptor edge_descriptor;
@@ -85,7 +86,20 @@ void labeledMeshTest()
 int main() {
 
     //labeledGraphTest();
-    labeledMeshTest();
+    //labeledMeshTest();
+    Eigen::MatrixXd mami(5,5);
+    /*mami << 0,1,0,0,0,
+            1,0,1,1,1,
+            0,1,0,1,0,
+            0,1,1,0,1,
+            0,1,0,1,0;*/
+    mami << 0,1,0,0,0,
+            1,0,0,0,0,
+            0,0,0,0,0,
+            0,0,0,0,0,
+            0,0,0,0,0;
+    NormSpectralClustering normSpectralClustering;
+    normSpectralClustering.normalizedSpectralClustering(mami,2);
     return 0;
 
     InputManager inputManager;
