@@ -7,9 +7,9 @@
 
 #include <eigen3/Eigen/Core>
 
-class NormSpectralClustering {
+class SpectralClustering {
 public:
-    void normalizedSpectralClustering(const Eigen::MatrixXd &simMatrix, unsigned short k);
+    void spectralClustering(const Eigen::MatrixXd &simMatrix, unsigned short k);
 
 private:
     Eigen::MatrixXd computeNormLaplacian(const Eigen::MatrixXd &simMatrix);

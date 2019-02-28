@@ -2,20 +2,22 @@
 // Created by matteo on 27/02/19.
 //
 
-#include <NormSpectralClustering.h>
+#include <SpectralClustering.h>
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/core/types_c.h>
 
-void NormSpectralClustering::normalizedSpectralClustering(const Eigen::MatrixXd &simMatrix, unsigned short k)
+void SpectralClustering::spectralClustering(const Eigen::MatrixXd &simMatrix, unsigned short k)
 {
+    (simMatrix.array() == 0).rowwise().all();
+
     Eigen::MatrixXd normalizedLaplacian = computeNormLaplacian(simMatrix);
     Eigen::MatrixXd reducedEigenvectors = computeKOrderedEigenvectors(normalizedLaplacian,k);
     clusterKMeans(reducedEigenvectors,k);
 }
 
-Eigen::MatrixXd NormSpectralClustering::computeNormLaplacian(const Eigen::MatrixXd &simMatrix)
+Eigen::MatrixXd SpectralClustering::computeNormLaplacian(const Eigen::MatrixXd &simMatrix)
 {
     Eigen::MatrixXd degrees = Eigen::MatrixXd::Zero(simMatrix.rows(),simMatrix.cols());
     Eigen::MatrixXd ones = Eigen::MatrixXd::Identity(simMatrix.rows(),simMatrix.cols());
@@ -31,7 +33,7 @@ Eigen::MatrixXd NormSpectralClustering::computeNormLaplacian(const Eigen::Matrix
     return symmLaplacian;
 }
 
-Eigen::MatrixXd NormSpectralClustering::computeKOrderedEigenvectors(const Eigen::MatrixXd &normLaplacian, unsigned short k)
+Eigen::MatrixXd SpectralClustering::computeKOrderedEigenvectors(const Eigen::MatrixXd &normLaplacian, unsigned short k)
 {
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(normLaplacian);
 
@@ -67,7 +69,7 @@ Eigen::MatrixXd NormSpectralClustering::computeKOrderedEigenvectors(const Eigen:
     return cutEigenvectors;
 }
 
-void NormSpectralClustering::clusterKMeans(const Eigen::MatrixXd &reducedEigenvec, unsigned short k)
+void SpectralClustering::clusterKMeans(const Eigen::MatrixXd &reducedEigenvec, unsigned short k)
 {
     unsigned int numElements = reducedEigenvec.rows();
     unsigned short numFeatures = reducedEigenvec.cols();

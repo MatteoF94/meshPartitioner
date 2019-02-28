@@ -8,7 +8,9 @@
 #include <MeshReducer.h>
 #include <GraphManipulator.h>
 #include <SimMatrixHandler.h>
-#include <NormSpectralClustering.h>
+#include <SpectralClustering.h>
+#include <GraphCoarsener.h>
+#include <boost/graph/connected_components.hpp>
 
 typedef CGAL::Dual<Mesh> Dual;
 typedef boost::graph_traits<Dual>::edge_descriptor edge_descriptor;
@@ -87,6 +89,34 @@ int main() {
 
     //labeledGraphTest();
     //labeledMeshTest();
+    Graph go(5);
+    boost::add_edge(0,1,1,go);
+    boost::add_edge(1,2,0.8,go);
+    boost::add_edge(1,3,0.9,go);
+    boost::add_edge(1,4,0.6,go);
+    boost::add_edge(2,4,1,go);
+    boost::add_edge(3,4,0.5,go);
+    /*boost::property_map<Graph,boost::edge_weight_t>::type EdgeWeightMap = boost::get(boost::edge_weight_t(),go);
+    std::pair<boost::graph_traits<Graph>::edge_iterator,boost::graph_traits<Graph>::edge_iterator> edgePair;
+    for(edgePair = boost::edges(go);edgePair.first != edgePair.second; ++edgePair.first)
+        std::cout << *edgePair.first << " " << EdgeWeightMap[*edgePair.first] << std::endl;
+
+    boost::graph_traits<Graph>::edge_descriptor e1,e2;
+    bool found1, found2;
+    boost::tie(e1,found1) = boost::edge(1,2,go);
+    boost::tie(e2,found2) = boost::edge(2,1,go);
+    std::cout << (e1 == e2) << found1 << found2 << std::endl;
+
+    boost::property_map<Graph,boost::edge_weight_t>::type weight = boost::get(boost::edge_weight,go);
+    std::cout << boost::get(weight,e1) << std::endl;
+    std::cout << boost::get(weight,e2) << std::endl;
+
+    exit(0);*/
+    /*GraphCoarsener graphCoarsener;
+    Graph asd;
+    graphCoarsener.coarsen(go,1,asd);
+    return 0;*/
+
     Eigen::MatrixXd mami(5,5);
     /*mami << 0,1,0,0,0,
             1,0,1,1,1,
@@ -98,8 +128,24 @@ int main() {
             0,0,0,0,0,
             0,0,0,0,0,
             0,0,0,0,0;
-    NormSpectralClustering normSpectralClustering;
-    normSpectralClustering.normalizedSpectralClustering(mami,2);
+    Eigen::MatrixXd olo = Eigen::MatrixXd::Identity(1000,1000);
+    Graph gasd(1000);
+    Stopwatch ss;
+    boost::add_edge(0,1,gasd);
+    ss.start();
+    std::vector<int> component(boost::num_vertices(gasd));
+    size_t num_components = boost::connected_components(gasd,&component[0]);
+    std::vector<int> miso(num_components);
+    for(int i = 0; i < boost::num_vertices(gasd); ++i) {
+        miso[component[i]]++;
+    }
+    std::cout << ss.stop() << std::endl;
+    ss.start();
+    std::cout << (olo.array() == 0).rowwise().all().count() << std::endl;
+    std::cout << ss.stop() << std::endl;
+    return 0;
+    SpectralClustering normSpectralClustering;
+    normSpectralClustering.spectralClustering(mami, 2);
     return 0;
 
     InputManager inputManager;
