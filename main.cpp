@@ -11,6 +11,7 @@
 #include <SpectralClustering.h>
 #include <GraphCoarsener.h>
 #include <boost/graph/connected_components.hpp>
+#include "directedPartitioner/include/DirectPartitioner.h"
 
 typedef CGAL::Dual<Mesh> Dual;
 typedef boost::graph_traits<Dual>::edge_descriptor edge_descriptor;
@@ -75,17 +76,27 @@ void labeledMeshTest()
 
     boost::print_graph(miaso);
 
-    GraphManipulator manipulator;
+    /*GraphManipulator manipulator;
     std::unordered_map<gNodeDsc,std::deque<unsigned int>> map = manipulator.mapElementsToReducedGraph(miaso,ola);
     std::vector<unsigned int> reducedNodesLabels = manipulator.mapReducedGraphToLabels(map,miao);
     SimMatrixHandler simMatrixHandler;
     std::string matFilename("../data/simMatrixTest.txt");
     Eigen::MatrixXd simMat = simMatrixHandler.readMatrix(matFilename);
     Eigen::MatrixXd simGraph = simMatrixHandler.buildGraphSimMatrix(miaso,reducedNodesLabels,simMat);
-    std::cout << simGraph << std::endl;
+    std::cout << simGraph << std::endl;*/
 }
 
 int main() {
+
+    InputManager inputManager1;
+    std::string input("../data/hand.off");
+    Mesh hand;
+    inputManager1.readMeshFromOff(input,hand);
+    DirectPartitioner directPartitioner;
+    std::vector<bool> isIn(hand.num_faces(),true);
+    std::vector<bool> op = directPartitioner.bisectMesh(hand,Mesh::face_index(0),isIn);
+    directPartitioner.bisectMesh(hand,Mesh::face_index(26400),op);
+    return 0;
 
     //labeledGraphTest();
     //labeledMeshTest();

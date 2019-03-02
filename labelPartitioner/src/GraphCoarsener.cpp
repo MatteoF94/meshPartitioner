@@ -5,7 +5,7 @@
 #include <GraphCoarsener.h>
 #include <boost/graph/graph_utility.hpp>
 
-void GraphCoarsener::coarsen(const Graph &g, unsigned int maxNumNodes, Graph &coarsenedGraph)
+std::vector<std::vector<gNodeDsc>> GraphCoarsener::coarsen(const Graph &g, unsigned int maxNumNodes, Graph &coarsenedGraph)
 {
     Graph tmpGraph = g;
 
@@ -27,6 +27,8 @@ void GraphCoarsener::coarsen(const Graph &g, unsigned int maxNumNodes, Graph &co
             clusters = currClusters;
         }
     }
+
+    return clusters;
 }
 
 void

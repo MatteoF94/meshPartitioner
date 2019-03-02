@@ -20,8 +20,10 @@ class GraphManipulator
 {
 public:
 
-    std::unordered_map<gNodeDsc,std::deque<unsigned int>> mapElementsToReducedGraph(const Graph &g, const std::vector<unsigned int> &groups);
+    std::vector<std::vector<gNodeDsc>> mapElementsToReducedGraph(const Graph &g, const std::vector<unsigned int> &groups);
     std::vector<unsigned int> mapReducedGraphToLabels(const std::unordered_map<gNodeDsc,std::deque<unsigned int>> &reducedToOriginalMap, const std::vector<unsigned int> &labels);
+    std::vector<unsigned int> findReducedGraphLabels(const std::vector<std::vector<gNodeDsc>> &reducedToOriginalNodes,
+                                                     const std::vector<unsigned int> &labels);
 };
 
 

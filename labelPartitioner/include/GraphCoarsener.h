@@ -10,7 +10,7 @@
 
 class GraphCoarsener {
 public:
-    void coarsen(const Graph &g, unsigned int maxNumNodes, Graph &coarsenedGraph);
+    std::vector<std::vector<gNodeDsc>> coarsen(const Graph &g, unsigned int maxNumNodes, Graph &coarsenedGraph);
     void similarEdgeMatching(Graph &tmpGraph, std::vector<std::vector<gNodeDsc>> &clusters, Graph &coarsenedGraph);
 private:
     void createCoarseGraph(Graph &tmpGraph, std::vector<unsigned int> &perm, const std::vector<std::vector<gNodeDsc>> newNodes, Graph &coarsenedGraph);

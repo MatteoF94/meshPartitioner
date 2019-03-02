@@ -4,13 +4,22 @@
 
 #include <GraphManipulator.h>
 
-std::unordered_map<gNodeDsc,std::deque<unsigned int>> GraphManipulator::mapElementsToReducedGraph(const Graph &g, const std::vector<unsigned int> &groups)
+std::vector<std::vector<gNodeDsc>> GraphManipulator::mapElementsToReducedGraph(const Graph &g, const std::vector<unsigned int> &groups)
 {
-    std::unordered_map<gNodeDsc,std::deque<unsigned int>> reducedToOriginalMap;
-
+    std::vector<std::vector<gNodeDsc>> reducedToOriginalNodes(boost::num_vertices(g));
+    for(unsigned int i = 0; i < groups.size(); ++i)
+    {
+        reducedToOriginalNodes[groups[i]].emplace_back(i);
+    }
+    
+    return reducedToOriginalNodes;
+    
+    /*std::unordered_map<gNodeDsc,std::deque<unsigned int>> reducedToOriginalMap;
+    
     for(size_t i = 0; i < boost::num_vertices(g); ++i)
     {
         std::deque<unsigned int> newDeque;
+        
         reducedToOriginalMap.insert({i,newDeque});
     }
 
@@ -30,9 +39,7 @@ std::unordered_map<gNodeDsc,std::deque<unsigned int>> GraphManipulator::mapEleme
             std::cout << element << " ";
         }
         std::cout << std::endl;
-    }
-
-    return reducedToOriginalMap;
+    }*/
 }
 
 std::vector<unsigned int> GraphManipulator::mapReducedGraphToLabels(
@@ -50,5 +57,20 @@ std::vector<unsigned int> GraphManipulator::mapReducedGraphToLabels(
     }
 
     return reducedNodesLabels;
+}
+
+std::vector<unsigned int> GraphManipulator::findReducedGraphLabels(const std::vector<std::vector<gNodeDsc>> &reducedToOriginalNodes,
+                                                 const std::vector<unsigned int> &labels)
+{
+    std::vector<unsigned int> reducedGraphLabels(reducedToOriginalNodes.size());
+    
+    for(unsigned int i = 0; i < reducedToOriginalNodes.size(); ++i)
+    {
+        gNodeDsc oneNode = reducedToOriginalNodes[i].back();
+        unsigned int reducedNodeLabel = labels[oneNode];
+        reducedGraphLabels[i] = reducedNodeLabel;
+    }
+    
+    return reducedGraphLabels;
 }
 
