@@ -2,12 +2,15 @@
 // Created by matteo on 01/03/19.
 //
 
-#include <DirectPartitioner.h>
+#include <DirectedPartitioner.h>
 #include <stack>
 #include <boost/circular_buffer.hpp>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <partitionTypes.h>
+#include <stopwatch.h>
+
 struct MyPosData {
     GLdouble x = 0;
     GLdouble y = 0;
@@ -122,10 +125,209 @@ void drawCubee(GLFWwindow* window,std::vector<GLfloat> coords,std::vector<GLfloa
     glDisableClientState(GL_VERTEX_ARRAY);
 }
 
-
-
-std::vector<bool> DirectPartitioner::bisectMesh(const Mesh &mesh,const Mesh::face_index initDsc, const std::vector<bool> &isNodeInSubMesh)
+std::vector<unsigned int> DirectedPartitioner::partitionMesh(const Mesh &mesh)
 {
+    Stopwatch stopwatch;
+    stopwatch.start();
+    DirectedPartition directedPartition;
+    directedPartition.mesh = mesh;
+    directedPartition.isFaceInPartition = new std::vector<bool>(mesh.num_faces(),true);
+    directedPartition.isFaceExplored = new std::vector<bool>(mesh.num_faces(),false);
+    directedPartition.isFaceVisited = new std::vector<bool>(mesh.num_faces(),false);
+    directedPartition.initDsc = Mesh::face_index(0);
+    directedPartition.cutThresh = mesh.num_faces()/2;
+
+    bisectMesh(directedPartition);
+    std::cout << stopwatch.stop() << std::endl;
+
+    GLFWwindow* window = initWindoww(1024, 620);
+    MyPosData my_pos_data;
+    glfwSetWindowUserPointer(window,&my_pos_data);
+    std::vector<GLfloat> coords,colors;
+
+    CGAL::Vertex_around_face_iterator<Mesh> vafb,vafe;
+    for(int i = 0; i < directedPartition.isFaceVisited->size(); ++i) {
+        if(directedPartition.isFaceVisited->operator[](i) && !directedPartition.isFaceExplored->operator[](i)) {
+            for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
+                Point3 p = (Point3) mesh.point(*vafb);
+                coords.push_back(p.x());
+                coords.push_back(p.y());
+                coords.push_back(p.z());
+
+                colors.push_back(0.0);
+                colors.push_back(1.0);
+                colors.push_back(0.0);
+            }
+        }
+    }
+
+    for(int i = 0; i < directedPartition.isFaceExplored->size(); ++i) {
+        if(directedPartition.isFaceExplored->operator[](i)) {
+            for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
+                Point3 p = (Point3) mesh.point(*vafb);
+                coords.push_back(p.x());
+                coords.push_back(p.y());
+                coords.push_back(p.z());
+
+                colors.push_back(1.0);
+                colors.push_back(0.0);
+                colors.push_back(0.0);
+            }
+        }
+    }
+
+    my_pos_data.to_display = true;
+    while (my_pos_data.to_display) {
+        GLint windowWidth, windowHeight;
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        glViewport(0, 0, windowWidth, windowHeight);
+
+        // Draw stuff
+        glClearColor(0.9, 0.9, 0.8, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glMatrixMode(GL_PROJECTION_MATRIX);
+        glLoadIdentity();
+
+        gluPerspective(60, (double) windowWidth / (double) windowHeight, 0.1, 100);
+
+        glMatrixMode(GL_MODELVIEW_MATRIX);
+        glTranslatef(0, 0, -5);
+
+        glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+        drawCubee(window,coords,colors);
+        glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+
+        // Update Screen
+        glfwSwapBuffers(window);
+
+        // Check for any input, or window movement
+        glfwPollEvents();
+
+    }
+    glfwDestroyWindow(window);
+}
+
+void DirectedPartitioner::bisectMesh(DirectedPartition &dirPart)
+{
+    std::stack<Mesh::face_index> faceDscStack;
+    std::unordered_map<Mesh::face_index,Mesh::face_index> originOfFaceDsc;
+    bool isSenseCCW = true;
+    unsigned int faceCount = 1;
+
+    CGAL::Face_around_face_iterator<Mesh> fafib, fafie;
+    for (boost::tie(fafib, fafie) = CGAL::faces_around_face(dirPart.mesh.halfedge(dirPart.initDsc),dirPart.mesh); fafib != fafie; ++fafib)
+    {
+        if(*fafib != Mesh::null_face() && dirPart.isFaceInPartition->operator[](*fafib))
+        {
+            faceDscStack.emplace(*fafib);
+            originOfFaceDsc.insert({*fafib,dirPart.initDsc});
+            dirPart.isFaceVisited->operator[](*fafib) = true;
+        }
+    }
+    dirPart.isFaceVisited->operator[](dirPart.initDsc) = true;
+    dirPart.isFaceExplored->operator[](dirPart.initDsc) = true;
+
+    while(!faceDscStack.empty())
+    {
+        Mesh::face_index currFaceDsc = faceDscStack.top();
+        faceDscStack.pop();
+        dirPart.isFaceExplored->operator[](currFaceDsc) = true;
+        faceCount++;
+
+        std::vector<Mesh::face_index> currFaceNeighs;
+        unsigned short currNeighIdx = 0;
+        short originIdx = -1;
+        short nullFaceIdx = -1;
+        for (boost::tie(fafib,fafie) = CGAL::faces_around_face(dirPart.mesh.halfedge(currFaceDsc),dirPart.mesh); fafib != fafie; ++fafib)
+        {
+            if(*fafib != Mesh::null_face() && dirPart.isFaceInPartition->operator[](*fafib))
+            {
+                currFaceNeighs.emplace_back(*fafib);
+
+                if(*fafib == originOfFaceDsc[currFaceDsc])
+                {
+                    originIdx = currNeighIdx;
+                }
+            }
+            else
+            {
+                nullFaceIdx = currNeighIdx;
+            }
+
+            currNeighIdx++;
+        }
+
+        if(currFaceNeighs.size() == 2)
+        {
+            if(isSenseCCW)
+            {
+                bool cond1 = originIdx == 0 && nullFaceIdx == 2;
+                bool cond2 = originIdx == 1 && nullFaceIdx == 0;
+                bool cond3 = originIdx == 2 && nullFaceIdx == 1;
+
+                if(cond1 || cond2 || cond3)
+                    isSenseCCW = false;
+            }
+            else
+            {
+                bool cond1 = originIdx == 0 && nullFaceIdx == 1;
+                bool cond2 = originIdx == 1 && nullFaceIdx == 2;
+                bool cond3 = originIdx == 2 && nullFaceIdx == 0;
+
+                if(cond1 || cond2 || cond3)
+                    isSenseCCW = true;
+            }
+        }
+
+        boost::circular_buffer<Mesh::face_index> currFaceCircularNeighs{currFaceNeighs.size()};
+        currFaceCircularNeighs.assign(currFaceNeighs.begin(),currFaceNeighs.end());
+
+        Mesh::face_index initiatorFace = originOfFaceDsc[currFaceDsc];
+        while (*currFaceCircularNeighs.begin() != initiatorFace)
+        {
+            currFaceCircularNeighs.rotate(currFaceCircularNeighs.begin() + 1);
+        }
+
+        if(isSenseCCW)
+        {
+            for(unsigned int i = 1; i < currFaceCircularNeighs.size(); ++i)
+            {
+                Mesh::face_index currNeigh = currFaceCircularNeighs[i];
+                if(!dirPart.isFaceExplored->operator[](currNeigh))
+                {
+                    faceDscStack.emplace(currNeigh);
+                    dirPart.isFaceVisited->operator[](currNeigh) = true;
+                    originOfFaceDsc[currNeigh] = currFaceDsc;
+                }
+            }
+        }
+        else
+        {
+            for(unsigned int i = currFaceCircularNeighs.size() - 1; i > 0; --i)
+            {
+                Mesh::face_index currNeigh = currFaceCircularNeighs[i];
+                if(!dirPart.isFaceExplored->operator[](currNeigh))
+                {
+                    faceDscStack.emplace(currNeigh);
+                    dirPart.isFaceVisited->operator[](currNeigh) = true;
+                    originOfFaceDsc[currNeigh] = currFaceDsc;
+                }
+            }
+        }
+
+        if(faceCount > dirPart.cutThresh)
+        {
+            dirPart.lastFaceDsc = currFaceDsc;
+            break;
+        }
+    }
+}
+
+std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::face_index initDsc, const std::vector<bool> &isNodeInSubMesh)
+{
+    Stopwatch stopwatch;
+    stopwatch.start();
     std::stack<Mesh::face_index> faceDscStack;
     std::vector<bool> isFaceVisited(mesh.num_faces(),false);
     std::vector<bool> isFaceExplored(mesh.num_faces(),false);
@@ -159,11 +361,12 @@ std::vector<bool> DirectPartitioner::bisectMesh(const Mesh &mesh,const Mesh::fac
 
         isFaceExplored[currFaceDsc] = true;
         faceCount++;
-if(faceCount == 411)
-    int miao = 0;
+        //std::cout << currFaceDsc << std::endl;
+
         // ABOVE THRESHOLD
         if(faceCount > thresh)
         {
+            std::cout << stopwatch.stop() << std::endl;
             GLFWwindow* window = initWindoww(1024, 620);
             MyPosData my_pos_data;
             glfwSetWindowUserPointer(window,&my_pos_data);
@@ -238,7 +441,7 @@ if(faceCount == 411)
             }
 
             std::vector<Mesh::face_index> iop = findHoles(isFaceVisited,isFaceExplored,hol);
-            for(auto el : iop)
+            /*for(auto el : iop)
                 for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(el),mesh);vafb != vafe;++vafb) {
                     Point3 p = (Point3) mesh.point(*vafb);
                     coords.push_back(p.x());
@@ -248,10 +451,10 @@ if(faceCount == 411)
                     colors.push_back(1.0);
                     colors.push_back(0.2);
                     colors.push_back(0.5);
-                }
+                }*/
 
             fillHoles(mesh,iop,isFaceExplored,isNodeInSubMesh);
-            for(int i = 0; i < isFaceVisited.size(); ++i) {
+            /*for(int i = 0; i < isFaceVisited.size(); ++i) {
                 if(isFaceExplored[i]) {
                     for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
                         Point3 p = (Point3) mesh.point(*vafb);
@@ -264,7 +467,23 @@ if(faceCount == 411)
                         colors.push_back(0.0);
                     }
                 }
-            }
+            }*/
+
+            unravelPartition(currFaceDsc,originFaces[currFaceDsc],mesh,isFaceExplored,isNodeInSubMesh);
+            /*for(int i = 0; i < isFaceVisited.size(); ++i) {
+                if(isFaceExplored[i]) {
+                    for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
+                        Point3 p = (Point3) mesh.point(*vafb);
+                        coords.push_back(p.x());
+                        coords.push_back(p.y());
+                        coords.push_back(p.z());
+
+                        colors.push_back(0.5);
+                        colors.push_back(0.5);
+                        colors.push_back(0.5);
+                    }
+                }
+            }*/
 
             my_pos_data.to_display = true;
             while (my_pos_data.to_display) {
@@ -392,7 +611,7 @@ if(faceCount == 411)
     return isFaceExplored;
 }
 
-Mesh::face_index DirectPartitioner::findOuterBorderInit(const Mesh::face_index lastFaceDsc,
+Mesh::face_index DirectedPartitioner::findOuterBorderInit(const Mesh::face_index lastFaceDsc,
                                                         const Mesh::face_index lastButOneFaceDsc,
                                                         const std::vector<bool> &isNodeInSubMesh,
                                                         const std::vector<bool> &isFaceExplored,
@@ -457,12 +676,41 @@ Mesh::face_index DirectPartitioner::findOuterBorderInit(const Mesh::face_index l
     return otherPartFaceDsc;
 }
 
-std::vector <Mesh::face_index> DirectPartitioner::findOuterBorder(const Mesh::face_index initFaceDsc,
+std::vector <Mesh::face_index> DirectedPartitioner::findOuterBorder(const Mesh::face_index initFaceDsc,
                                                                   const std::vector<bool> &isNodeInSubMesh,
                                                                   const std::vector<bool> &isFaceExplored,
                                                                   const Mesh &mesh)
 {
-    std::cout << initFaceDsc << std::endl;
+    std::stack<Mesh::face_index> holeFacesStack;
+    std::vector<bool> isOuterFaceInserted(mesh.num_faces(),false);
+
+    holeFacesStack.emplace(initFaceDsc);
+    isOuterFaceInserted[initFaceDsc] = true;
+
+    while(!holeFacesStack.empty())
+    {
+        Mesh::face_index currFaceDsc = holeFacesStack.top();
+        holeFacesStack.pop();
+
+        CGAL::Face_around_face_iterator<Mesh> fafBegin, fafEnd;
+        for (boost::tie(fafBegin, fafEnd) = CGAL::faces_around_face(mesh.halfedge(currFaceDsc), mesh); fafBegin != fafEnd; ++fafBegin)
+        {
+            if(*fafBegin != Mesh::null_face() && !isFaceExplored[*fafBegin] && isNodeInSubMesh[*fafBegin] && !isOuterFaceInserted[*fafBegin])
+            {
+                holeFacesStack.emplace(*fafBegin);
+                isOuterFaceInserted[*fafBegin] = true;
+            }
+        }
+    }
+
+    std::vector<Mesh::face_index> oso;
+    for(unsigned int i = 0; i < isOuterFaceInserted.size(); ++i)
+    {
+        if(isOuterFaceInserted[i]) oso.emplace_back(Mesh::face_index(i));
+    }
+
+    return oso;
+   /* std::cout << initFaceDsc << std::endl;
 
     std::stack<Mesh::face_index> faceDscStack;
     std::unordered_map<Mesh::face_index,Mesh::face_index> originFaces;
@@ -526,16 +774,11 @@ std::vector <Mesh::face_index> DirectPartitioner::findOuterBorder(const Mesh::fa
             {
                 tmpNeighbours.emplace_back(*fafib);
 
-                if(maramiao[*fafib] && originFaces[currFaceDsc] != *fafib)
+                if(maramiao[*fafib] && originFaces[currFaceDsc] != *fafib )//&& *fafib == initFaceDsc)
                 {
                     std::vector<Mesh::face_index> borderFaces(visitedFaces.begin(), visitedFaces.end());
                     return borderFaces;
                 }
-                /*if(*fafib == initFaceDsc && originFaces[currFaceDsc] != initFaceDsc)
-                {
-                    std::vector<Mesh::face_index> borderFaces(visitedFaces.begin(), visitedFaces.end());
-                    return borderFaces;
-                }*/
             }
         }
 
@@ -550,11 +793,6 @@ std::vector <Mesh::face_index> DirectPartitioner::findOuterBorder(const Mesh::fa
 
         for (unsigned int i = 1; i < currFaceNeighbours.size(); ++i)
         {
-                /*if(visitedFaces.find(currFaceNeighbours[i]).operator->() != visitedFaces.end().operator->())
-                {
-                        //std::vector<Mesh::face_index> borderFaces(visitedFaces.begin(), visitedFaces.end());
-                        //return borderFaces;
-                }*/
                 if(!maramiao[currFaceNeighbours[i]])
                 {
                     faceDscStack.emplace(currFaceNeighbours[i]);
@@ -565,11 +803,11 @@ std::vector <Mesh::face_index> DirectPartitioner::findOuterBorder(const Mesh::fa
         }
 
         count++;
-    }
+    }*/
 }
 
 std::vector<Mesh::face_index>
-DirectPartitioner::findHoles(const std::vector<bool> &visitedNodes, const std::vector<bool> &expandedNodes, const std::vector<Mesh::face_index> &outerBorder)
+DirectedPartitioner::findHoles(const std::vector<bool> &visitedNodes, const std::vector<bool> &expandedNodes, const std::vector<Mesh::face_index> &outerBorder)
 {
     std::vector<Mesh::face_index> facesInHoles;
 
@@ -590,7 +828,7 @@ DirectPartitioner::findHoles(const std::vector<bool> &visitedNodes, const std::v
     return facesInHoles;
 }
 
-void DirectPartitioner::fillHoles(const Mesh &mesh,
+void DirectedPartitioner::fillHoles(const Mesh &mesh,
                                   const std::vector<Mesh::face_index> &holesDscs,
                                   std::vector<bool> &insertedFaces,
                                   const std::vector<bool> &isNodeInSubMesh)
@@ -619,6 +857,113 @@ void DirectPartitioner::fillHoles(const Mesh &mesh,
                 {
                     holeFacesStack.emplace(*fafBegin);
                     insertedFaces[*fafBegin] = true;
+                }
+            }
+        }
+    }
+}
+
+void DirectedPartitioner::unravelPartition(const Mesh::face_index lastFaceDsc,
+                                         const Mesh::face_index lastButOneFaceDsc,
+                                         const Mesh &mesh,
+                                         std::vector<bool> &isFaceExplored,
+                                         const std::vector<bool> &isNodeInSubMesh)
+{
+    // Explore until first element of the other border is found
+    std::stack<Mesh::face_index> faceDscStack;
+    std::unordered_map<Mesh::face_index,Mesh::face_index> originFaces;
+    std::unordered_set<Mesh::face_index> isFaceVisited;
+    unsigned short numFaces = 1;
+    for(auto i : isFaceExplored) if(i) numFaces++;
+    bool isSenseCCW = true;
+
+    faceDscStack.emplace(lastButOneFaceDsc);
+    originFaces[lastButOneFaceDsc] = lastFaceDsc;
+    isFaceExplored[lastFaceDsc] = false;
+
+    CGAL::Face_around_face_iterator<Mesh> fafib, fafie;
+    while(numFaces > isNodeInSubMesh.size()/2)
+    {
+        Mesh::face_index currFaceDsc = faceDscStack.top();
+        faceDscStack.pop();
+        isFaceExplored[currFaceDsc] = false;
+        numFaces--;
+
+        std::vector<Mesh::face_index> currFaceNeighs;
+        unsigned short currNeighIdx = 0;
+        short originIdx = -1;
+        short nullFaceIdx = -1;
+        for (boost::tie(fafib,fafie) = CGAL::faces_around_face(mesh.halfedge(currFaceDsc),mesh); fafib != fafie; ++fafib)
+        {
+            if(*fafib != Mesh::null_face() && isNodeInSubMesh[*fafib])
+            {
+                    currFaceNeighs.emplace_back(*fafib);
+
+                    if(*fafib == originFaces[currFaceDsc])
+                    {
+                        originIdx = currNeighIdx;
+                    }
+            }
+            else
+            {
+                nullFaceIdx = currNeighIdx;
+            }
+
+            currNeighIdx++;
+        }
+
+        if(currFaceNeighs.size() == 2)
+        {
+            if(isSenseCCW)
+            {
+                bool cond1 = originIdx == 0 && nullFaceIdx == 2;
+                bool cond2 = originIdx == 1 && nullFaceIdx == 0;
+                bool cond3 = originIdx == 2 && nullFaceIdx == 1;
+
+                if(cond1 || cond2 || cond3)
+                    isSenseCCW = false;
+            }
+            else
+            {
+                bool cond1 = originIdx == 0 && nullFaceIdx == 1;
+                bool cond2 = originIdx == 1 && nullFaceIdx == 2;
+                bool cond3 = originIdx == 2 && nullFaceIdx == 0;
+
+                if(cond1 || cond2 || cond3)
+                    isSenseCCW = true;
+            }
+        }
+
+        boost::circular_buffer<Mesh::face_index> currFaceCircularNeighs(currFaceNeighs.size());
+        currFaceCircularNeighs.assign(currFaceNeighs.begin(),currFaceNeighs.end());
+
+        Mesh::face_index currFaceOriginDsc = originFaces[currFaceDsc];
+        while(*currFaceCircularNeighs.begin() != currFaceOriginDsc)
+        {
+            currFaceCircularNeighs.rotate(currFaceCircularNeighs.begin() + 1);
+        }
+
+        if(isSenseCCW)
+        {
+            for(unsigned int i = 1; i < currFaceCircularNeighs.size(); ++i)
+            {
+                Mesh::face_index currNeigh = currFaceCircularNeighs[i];
+                if(isFaceExplored[currNeigh])
+                {
+                    faceDscStack.emplace(currNeigh);
+                    originFaces[currNeigh] = currFaceDsc;
+                }
+            }
+        }
+        else
+        {
+            for(unsigned int i = currFaceCircularNeighs.size() - 1; i > 0; --i)
+            {
+                Mesh::face_index currNeigh = currFaceCircularNeighs[i];
+                if(isFaceExplored[currNeigh])
+                {
+                    faceDscStack.emplace(currNeigh);
+                    originFaces[currNeigh] = currFaceDsc;
                 }
             }
         }

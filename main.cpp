@@ -11,7 +11,7 @@
 #include <SpectralClustering.h>
 #include <GraphCoarsener.h>
 #include <boost/graph/connected_components.hpp>
-#include "directedPartitioner/include/DirectPartitioner.h"
+#include "directedPartitioner/include/DirectedPartitioner.h"
 
 typedef CGAL::Dual<Mesh> Dual;
 typedef boost::graph_traits<Dual>::edge_descriptor edge_descriptor;
@@ -86,16 +86,19 @@ void labeledMeshTest()
     std::cout << simGraph << std::endl;*/
 }
 
-int main() {
-
+int main()
+{
     InputManager inputManager1;
     std::string input("../data/hand.off");
     Mesh hand;
     inputManager1.readMeshFromOff(input,hand);
-    DirectPartitioner directPartitioner;
-    std::vector<bool> isIn(hand.num_faces(),true);
+    DirectedPartitioner directPartitioner;
+    directPartitioner.partitionMesh(hand);
+    /*std::vector<bool> isIn(hand.num_faces(),true);
     std::vector<bool> op = directPartitioner.bisectMesh(hand,Mesh::face_index(0),isIn);
-    directPartitioner.bisectMesh(hand,Mesh::face_index(26400),op);
+    for(int i = 0; i < op.size(); i++) op[i] = !op[i];
+    std::cout << op[26400] << std::endl;
+    directPartitioner.bisectMesh(hand,Mesh::face_index(26400),op);*/
     return 0;
 
     //labeledGraphTest();
