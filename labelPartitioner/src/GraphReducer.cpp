@@ -245,7 +245,10 @@ void GraphReducer::reduceIteratively(GraphReducer::labeledGraphToReduce &lpg, gN
                 {
                     if(!expanded[*aib])
                     {
-                        if(lpg.labels[*aib] == lpg.labels[snapIt->currNodeDsc])
+                        std::pair<Graph::edge_descriptor, bool> edge = boost::edge(snapIt->currNodeDsc,*aib,lpg.g);
+                        double weight = boost::get(boost::edge_weight_t(),lpg.g, edge.first);
+                        if(weight >= 0.6)
+                        //if(lpg.labels[*aib] == lpg.labels[snapIt->currNodeDsc])
                         {
                             snapIt->nodesSameLabel.emplace(*aib);
                             lpg.nodesGroup[*aib] = lpg.nodesGroup[snapIt->currNodeDsc];
@@ -296,20 +299,27 @@ void GraphReducer::reduceIteratively(GraphReducer::labeledGraphToReduce &lpg, gN
                     }
 
                     gNodeDsc currDsc = *snapIt->nodesDiffLabelIt;
-                    boost::add_edge(lpg.nodesGroup[snapIt->currNodeDsc],lpg.nodesGroup[currDsc],reducedGraph);
+                    //if(lpg.nodesGroup[snapIt->currNodeDsc] != lpg.nodesGroup[currDsc])
+                        //boost::add_edge(lpg.nodesGroup[snapIt->currNodeDsc],lpg.nodesGroup[currDsc],reducedGraph);
                     snapIt->nodesDiffLabelIt++;
 
                     if(!expanded[currDsc])
                     {
                         ++lpg.currGroup;
                         boost::add_vertex(reducedGraph);
+                        if(lpg.currGroup != boost::num_vertices(reducedGraph))
+                            int miao = boost::num_vertices(reducedGraph);
                         lpg.nodesGroup[currDsc] = lpg.currGroup;
                         expanded[currDsc] = true;
 
                         SnapshotIteration newSnapshot(currDsc);
                         snapshotList.emplace_back(newSnapshot);
 
+                        boost::add_edge(lpg.nodesGroup[snapIt->currNodeDsc],lpg.nodesGroup[currDsc],reducedGraph);
+
                         snapIt++;
+                    } else {
+                        boost::add_edge(lpg.nodesGroup[snapIt->currNodeDsc],lpg.nodesGroup[currDsc],reducedGraph);
                     }
                 }
                 else

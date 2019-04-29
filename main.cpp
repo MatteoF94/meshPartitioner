@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <InputManager.h>
 #include <CGAL/boost/graph/Dual.h>
 #include <boost/graph/filtered_graph.hpp>
@@ -11,7 +12,11 @@
 #include <SpectralClustering.h>
 #include <GraphCoarsener.h>
 #include <boost/graph/connected_components.hpp>
+#include <CreatorChecker.h>
+#include <TreeMetricsEvals.h>
 #include "directedPartitioner/include/DirectedPartitioner.h"
+#include "ADtreePartitioner/include/ADtypes.h"
+#include "ADtreePartitioner/include/CreationManager.h"
 
 typedef CGAL::Dual<Mesh> Dual;
 typedef boost::graph_traits<Dual>::edge_descriptor edge_descriptor;
@@ -66,11 +71,15 @@ void labeledMeshTest()
 {
     InputManager inputManager;
     Mesh mesh;
-    inputManager.readMeshFromOff("../data/flat.off", mesh);
+    inputManager.readMeshFromOff("/home/matteo/Desktop/filtered/filtered/south.off", mesh);
     MeshReducer meshReducer;
-    std::vector<unsigned int> miao = {0,1,2,1,2,0,0,1,0,0,0,1,2};
-    std::vector<unsigned int> ola(13,0);
+    std::cout << "num faces " << mesh.num_faces() << std::endl;
+    std::vector<unsigned int> miao(mesh.num_faces(),0);
+    std::vector<unsigned int> ola(mesh.num_faces(),0);
+    Stopwatch stoppy;
+    stoppy.start();
     Graph miaso = meshReducer.reduceLabeledMesh(mesh,miao,ola);
+    std::cout << stoppy.stop() << std::endl;
     //for(auto elem : ola)
       //  std::cout << elem << std::endl;
 
@@ -88,17 +97,130 @@ void labeledMeshTest()
 
 int main()
 {
+    Stopwatch STOPPY;
+    ADnode* root = new ADnode(Mesh::face_index(0));
+    CreationManager creationManager;
+    creationManager.setSTCreatorVariant(SpanningTreeVariant::LtR);
+    creationManager.setATCreatorVariant(AriadneTreeVariant::LtR);
+    InputManager inputManagermesh;
+    std::string inputm("/home/matteo/CLionProjects/manifold_splitting/data/Watermarking/bunny/bunny.off");
+    std::string graphin("../data/medGraph.txt");
+    Mesh mmm;
+    Graph tinyGraph;
+    inputManagermesh.readGraphFromEdgeList(graphin,tinyGraph);
+    inputManagermesh.readMeshFromOff(inputm,mmm);
+    STOPPY.start();
+    creationManager.createFromGraph(tinyGraph,root);
+    //creationManager.createFromMesh(mmm,root);
+    std::cout << "AD-tree created in " << STOPPY.stop() << " seconds" << std::endl;
+
+    CreatorChecker checker;
+    if(checker.checkTreeIntegrity(root,boost::num_vertices(tinyGraph)))
+        std::cout << "AD-tree built correctly" << std::endl;
+    else
+        std::cout << "AD-tree built incorrectly" << std::endl;
+
+    ADnode *cursor(root);
+    while(cursor)
+    {
+        std::cout << cursor->id_ << " -> ";
+        cursor = cursor->next_;
+    }
+    std::cout << std::endl;
+
+    TreeMetricsEvals treeMetricsEvals;
+    treeMetricsEvals.evaluateTree(root,"");
+
+    return 0;
+
+    /*std::vector<std::string> olaa = {"_0.off","_1.off","_2.off","_3.off","_4.off","_5.off","_6.off","_7.off"};
+    double value = 0;
+    for(auto el : olaa) {
+        InputManager im;
+        std::string uffa = "/home/matteo/meshes/venus/MTP/venus" + el;
+        //std::string uffa = "../data/partitions/venus/venus" + el;
+        std::string in(uffa);
+        Mesh min;
+        im.readMeshFromOff(in, min);
+
+        double counter = 0;
+        for (auto fd : min.faces()) {
+            CGAL::Face_around_face_iterator<Mesh> fafib, fafie;
+
+            int op = 0;
+            for (boost::tie(fafib, fafie) = CGAL::faces_around_face(min.halfedge(fd), min); fafib != fafie; ++fafib) {
+
+
+                if (*fafib == Mesh::null_face()) {
+                    op++;
+                }
+            }
+            if(op > 0 && op != 3)
+                counter++;
+        }
+
+        value = value + counter/min.num_faces();
+        std::cout << counter << std::endl;
+        std::cout << min.num_faces() << std::endl;
+
+    }
+    std::cout << value/8 << std::endl;
+    return 0;*/
+
     InputManager inputManager1;
-    std::string input("../data/hand.off");
-    Mesh hand;
-    inputManager1.readMeshFromOff(input,hand);
+    //std::string input("/home/matteo/CLionProjects/manifold_splitting/data/Castle/castle.off");
+    //std::string input("/home/matteo/Desktop/meshes/Castle.off");
+    std::string input("../data/partitions/castle/castle2.off");
+    Mesh mesho;
+    inputManager1.readMeshFromOff(input,mesho);
+
     DirectedPartitioner directPartitioner;
-    directPartitioner.partitionMesh(hand);
-    /*std::vector<bool> isIn(hand.num_faces(),true);
-    std::vector<bool> op = directPartitioner.bisectMesh(hand,Mesh::face_index(0),isIn);
-    for(int i = 0; i < op.size(); i++) op[i] = !op[i];
-    std::cout << op[26400] << std::endl;
-    directPartitioner.bisectMesh(hand,Mesh::face_index(26400),op);*/
+    //directPartitioner.partitionMesh(mesho);
+    std::vector<bool> isIn(mesho.num_faces(),true);
+    Stopwatch stoppy;
+    stoppy.start();
+    std::vector<bool> op = directPartitioner.bisectMesh(mesho,Mesh::face_index(5000),isIn);
+    std::cout << "Bisection in " << stoppy.stop() << std::endl;
+    //return 0;
+
+    Mesh m1 = mesho;
+    Mesh m2 = mesho;
+
+    int count1 = 0;
+    int count2 = 0;
+    for(int i = 0; i < op.size(); i++)
+        if(op[i]) {
+            m1.remove_face(Mesh::face_index(i));
+            count1++;
+        }
+        else {
+            m2.remove_face(Mesh::face_index(i));
+            count2++;
+        }
+
+    std::cout << count1 << std::endl;
+    std::cout << count2 << std::endl;
+    std::stringstream sss;
+    sss << "../data/partitions/castle/castle_3.off";
+    std::ofstream outfiles(sss.str());
+    outfiles << m1;
+    std::stringstream sss2;
+    sss2 << "../data/partitions/castle/castle_4.off";
+    std::ofstream outfiles2(sss2.str());
+    outfiles2 << m2;
+    return 0;
+
+    //for(int i = 0; i < op.size(); i++) op[i] = !op[i];
+    std::ofstream outfile("../data/partitions.txt");
+    int count = 0;
+    for(auto lo : op)
+        if(lo) {
+            count++;
+            outfile << 1 << std::endl;
+        }
+        else
+            outfile << 0 << std::endl;
+    std::cout << count << std::endl;
     return 0;
 
     //labeledGraphTest();

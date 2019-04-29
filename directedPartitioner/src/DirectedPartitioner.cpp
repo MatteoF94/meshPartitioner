@@ -339,7 +339,7 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
     CGAL::Face_around_face_iterator<Mesh> fafib, fafie;
     for (boost::tie(fafib, fafie) = CGAL::faces_around_face(mesh.halfedge(initDsc),mesh); fafib != fafie; ++fafib)
     {
-        if(isNodeInSubMesh[*fafib])
+        if(*fafib != Mesh::null_face() && isNodeInSubMesh[*fafib])
         {
             faceDscStack.emplace(*fafib);
             originFaces.insert({*fafib, initDsc});
@@ -373,7 +373,7 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
             std::vector<GLfloat> coords,colors;
 
             CGAL::Vertex_around_face_iterator<Mesh> vafb,vafe;
-            for(int i = 0; i < isFaceVisited.size(); ++i) {
+            /*for(int i = 0; i < isFaceVisited.size(); ++i) {
                 if(isFaceVisited[i] && !isFaceExplored[i]) {
                     for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
                         Point3 p = (Point3) mesh.point(*vafb);
@@ -388,7 +388,7 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                 }
             }
 
-           for(int i = 0; i < isFaceVisited.size(); ++i) {
+           for(int i = 0; i < isFaceExplored.size(); ++i) {
                 if(isFaceExplored[i]) {
                     for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
                         Point3 p = (Point3) mesh.point(*vafb);
@@ -401,11 +401,10 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                         colors.push_back(0.0);
                     }
                 }
-            }
+            }*/
 
-            std::cout << currFaceDsc << std::endl;
             Mesh::face_index initFaceDsc = findOuterBorderInit(currFaceDsc,originFaces[currFaceDsc],isNodeInSubMesh,isFaceExplored,mesh);
-            for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(initFaceDsc),mesh);vafb != vafe;++vafb) {
+            /*for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(initFaceDsc),mesh);vafb != vafe;++vafb) {
                 Point3 p = (Point3) mesh.point(*vafb);
                 coords.push_back(p.x());
                 coords.push_back(p.y());
@@ -414,10 +413,10 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                 colors.push_back(0.0);
                 colors.push_back(0.0);
                 colors.push_back(0.0);
-            }
+            }*/
 
             std::vector<Mesh::face_index> hol = findOuterBorder(initFaceDsc,isNodeInSubMesh,isFaceExplored,mesh);
-            for(auto el : hol)
+            /*for(auto el : hol)
             for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(el),mesh);vafb != vafe;++vafb) {
                 Point3 p = (Point3) mesh.point(*vafb);
                 coords.push_back(p.x());
@@ -427,9 +426,9 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                 colors.push_back(0.0);
                 colors.push_back(0.0);
                 colors.push_back(1.0);
-            }
+            }*/
 
-            for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(initFaceDsc),mesh);vafb != vafe;++vafb) {
+            /*for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(initFaceDsc),mesh);vafb != vafe;++vafb) {
                 Point3 p = (Point3) mesh.point(*vafb);
                 coords.push_back(p.x());
                 coords.push_back(p.y());
@@ -438,7 +437,7 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                 colors.push_back(0.0);
                 colors.push_back(0.0);
                 colors.push_back(0.0);
-            }
+            }*/
 
             std::vector<Mesh::face_index> iop = findHoles(isFaceVisited,isFaceExplored,hol);
             /*for(auto el : iop)
@@ -448,13 +447,13 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                     coords.push_back(p.y());
                     coords.push_back(p.z());
 
-                    colors.push_back(1.0);
-                    colors.push_back(0.2);
-                    colors.push_back(0.5);
+                    colors.push_back(0.0);
+                    colors.push_back(0.0);
+                    colors.push_back(0.0);
                 }*/
 
             fillHoles(mesh,iop,isFaceExplored,isNodeInSubMesh);
-            /*for(int i = 0; i < isFaceVisited.size(); ++i) {
+            /*for(int i = 0; i < isFaceExplored.size(); ++i) {
                 if(isFaceExplored[i]) {
                     for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
                         Point3 p = (Point3) mesh.point(*vafb);
@@ -462,15 +461,26 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                         coords.push_back(p.y());
                         coords.push_back(p.z());
 
+                        colors.push_back(1.0);
                         colors.push_back(0.0);
                         colors.push_back(0.0);
+                    }
+                } else {
+                    for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
+                        Point3 p = (Point3) mesh.point(*vafb);
+                        coords.push_back(p.x());
+                        coords.push_back(p.y());
+                        coords.push_back(p.z());
+
+                        colors.push_back(0.0);
+                        colors.push_back(1.0);
                         colors.push_back(0.0);
                     }
                 }
             }*/
 
             unravelPartition(currFaceDsc,originFaces[currFaceDsc],mesh,isFaceExplored,isNodeInSubMesh);
-            /*for(int i = 0; i < isFaceVisited.size(); ++i) {
+            for(int i = 0; i < isFaceExplored.size(); ++i) {
                 if(isFaceExplored[i]) {
                     for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
                         Point3 p = (Point3) mesh.point(*vafb);
@@ -478,12 +488,22 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                         coords.push_back(p.y());
                         coords.push_back(p.z());
 
-                        colors.push_back(0.5);
-                        colors.push_back(0.5);
-                        colors.push_back(0.5);
+                        colors.push_back(1.0);
+                        colors.push_back(0.0);
+                        colors.push_back(0.0);
                     }
-                }
-            }*/
+                } else {
+                    for(boost::tie(vafb,vafe) = CGAL::vertices_around_face(mesh.halfedge(Mesh::face_index(i)),mesh);vafb != vafe;++vafb) {
+                        Point3 p = (Point3) mesh.point(*vafb);
+                        coords.push_back(p.x());
+                        coords.push_back(p.y());
+                        coords.push_back(p.z());
+
+                        colors.push_back(0.0);
+                        colors.push_back(0.0);
+                        colors.push_back(1.0);
+                    }
+                }}
 
             my_pos_data.to_display = true;
             while (my_pos_data.to_display) {
@@ -503,7 +523,7 @@ std::vector<bool> DirectedPartitioner::bisectMesh(const Mesh &mesh,const Mesh::f
                 glMatrixMode(GL_MODELVIEW_MATRIX);
                 glTranslatef(0, 0, -5);
 
-                glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+                //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
                 drawCubee(window,coords,colors);
                 glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 
@@ -633,7 +653,6 @@ Mesh::face_index DirectedPartitioner::findOuterBorderInit(const Mesh::face_index
         Mesh::face_index currFaceDsc = faceDscStack.top();
         faceDscStack.pop();
         isFaceVisited.insert(currFaceDsc);
-        std::cout << "miao " << currFaceDsc << std::endl;
 
         std::vector<Mesh::face_index> currFaceNeighs;
         for (boost::tie(fafib,fafie) = CGAL::faces_around_face(mesh.halfedge(currFaceDsc),mesh); fafib != fafie; ++fafib)
@@ -811,10 +830,25 @@ DirectedPartitioner::findHoles(const std::vector<bool> &visitedNodes, const std:
 {
     std::vector<Mesh::face_index> facesInHoles;
 
-    std::vector<bool> tmp(visitedNodes.size(), false);
+    std::vector<bool> tmp(visitedNodes.size(), true);
     for(unsigned int i = 0; i < visitedNodes.size(); ++i)
     {
-        if(visitedNodes[i] && !expandedNodes[i])
+        if(expandedNodes[i])
+            tmp[i] = false;
+    }
+
+    for(auto el : outerBorder)
+        tmp[el] = false;
+
+    for(unsigned int i = 0; i < tmp.size(); ++i)
+        if(tmp[i])
+        {
+            facesInHoles.emplace_back(Mesh::face_index(i));
+        }
+
+    /*for(unsigned int i = 0; i < visitedNodes.size(); ++i)
+    {
+        if(!visitedNodes[i] && !expandedNodes[i])
             tmp[i] = true;
     }
 
@@ -823,7 +857,7 @@ DirectedPartitioner::findHoles(const std::vector<bool> &visitedNodes, const std:
 
     for(unsigned int i = 0; i < tmp.size(); ++i)
         if(tmp[i])
-            facesInHoles.emplace_back(Mesh::face_index(i));
+            facesInHoles.emplace_back(Mesh::face_index(i));*/
 
     return facesInHoles;
 }
@@ -873,15 +907,17 @@ void DirectedPartitioner::unravelPartition(const Mesh::face_index lastFaceDsc,
     std::stack<Mesh::face_index> faceDscStack;
     std::unordered_map<Mesh::face_index,Mesh::face_index> originFaces;
     std::unordered_set<Mesh::face_index> isFaceVisited;
-    unsigned short numFaces = 1;
+    unsigned int numFaces = 0;
     for(auto i : isFaceExplored) if(i) numFaces++;
     bool isSenseCCW = true;
 
     faceDscStack.emplace(lastButOneFaceDsc);
     originFaces[lastButOneFaceDsc] = lastFaceDsc;
     isFaceExplored[lastFaceDsc] = false;
+    numFaces--;
 
     CGAL::Face_around_face_iterator<Mesh> fafib, fafie;
+    int count = 0;
     while(numFaces > isNodeInSubMesh.size()/2)
     {
         Mesh::face_index currFaceDsc = faceDscStack.top();
@@ -968,4 +1004,6 @@ void DirectedPartitioner::unravelPartition(const Mesh::face_index lastFaceDsc,
             }
         }
     }
+
+    std::cout << "OIIIII "<< faceDscStack.top() << std::endl;
 }

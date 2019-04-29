@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include "InputManager.h"
+#include <boost/graph/graph_utility.hpp>
 
 InputManager::InputManager()
 {
@@ -27,23 +28,20 @@ void InputManager::readMeshFromOff(const std::string &offFilename, Mesh &mesh)
     offFile.close();
 }
 
-void InputManager::readGraphFromGraph(const std::string &graphFilename, Graph &graph)
+void InputManager::readGraphFromEdgeList(const std::string &graphFilename, Graph &graph)
 {
     std::ifstream graphFile(graphFilename);
 
-    int numVertices;
     std::string line;
-    std::getline(graphFile,line);
     std::istringstream iss(line);
-
-    if(!(iss >> numVertices)) std::cout << "Error" << std::endl;
-
-    for(unsigned int i = 0; i < numVertices; ++i)
-        boost::add_vertex(graph);
 
     while(std::getline(graphFile,line))
     {
         std::istringstream is(line);
-        //std::
+        unsigned int a,b;
+        is >> a >> b;
+        boost::add_edge(a,b,graph);
     }
+
+    boost::print_graph(graph);
 }

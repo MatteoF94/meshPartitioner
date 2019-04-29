@@ -28,7 +28,7 @@ Eigen::MatrixXd SpectralClustering::computeNormLaplacian(const Eigen::MatrixXd &
     }
 
     Eigen::MatrixXd symmLaplacian = ones - degrees*simMatrix*degrees;
-    std::cout << symmLaplacian << std::endl;
+    //std::cout << symmLaplacian << std::endl;
 
     return symmLaplacian;
 }
@@ -71,12 +71,12 @@ std::vector<std::vector<gNodeDsc>> SpectralClustering::clusterKMeans(const Eigen
         newClusters[labels.at<int>(i)].emplace_back(i);
     }
 
-    for(unsigned int i = 0; i < k; ++i)
+    /*for(unsigned int i = 0; i < k; ++i)
     {
        std::cout << std::endl;
        for(auto dsc : newClusters[i])
            std::cout << dsc << " ";
-    }
+    }*/
 
     return newClusters;
 }

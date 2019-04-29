@@ -15,7 +15,7 @@ public:
     ~InputManager();
 
     void readMeshFromOff(const std::string &offFilename, Mesh &mesh);
-    void readGraphFromGraph(const std::string &offFilename, Graph &graph);
+    void readGraphFromEdgeList(const std::string &graphFilename, Graph &graph);
 };
 
 

@@ -11,7 +11,8 @@ std::vector<std::vector<gNodeDsc>> GraphManipulator::mapElementsToReducedGraph(c
     {
         reducedToOriginalNodes[groups[i]].emplace_back(i);
     }
-    
+
+    std::cout << "going to return" << std::endl;
     return reducedToOriginalNodes;
     
     /*std::unordered_map<gNodeDsc,std::deque<unsigned int>> reducedToOriginalMap;

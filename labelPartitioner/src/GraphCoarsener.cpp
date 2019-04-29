@@ -133,7 +133,12 @@ void GraphCoarsener::createCoarseGraph(Graph &tmpGraph, std::vector<unsigned int
                     if (edge.second)
                     {
                         double oldWeight = boost::get(boost::edge_weight_t(),coarsenedGraph, edge.first);
-                        boost::put(boost::edge_weight_t(), coarsenedGraph, edge.first, oldWeight*weightToMul);
+                        double currWeight;
+                        if(oldWeight*weightToMul < 0.1)
+                            currWeight = 0.1;
+                        else
+                            currWeight = oldWeight*weightToMul;
+                        boost::put(boost::edge_weight_t(), coarsenedGraph, edge.first, currWeight);
                     }
                     else
                     {
@@ -149,7 +154,7 @@ void GraphCoarsener::createCoarseGraph(Graph &tmpGraph, std::vector<unsigned int
     {
         double currWeight = boost::get(boost::edge_weight_t(),coarsenedGraph,*eib);
         boost::put(boost::edge_weight_t(), coarsenedGraph, *eib, sqrt(currWeight));
-        std::cout << boost::get(boost::edge_weight_t(),coarsenedGraph,*eib) << std::endl;
+        //std::cout << boost::get(boost::edge_weight_t(),coarsenedGraph,*eib) << std::endl;
     }
 
     /*boost::property_map<Graph,boost::edge_weight_t>::type EdgeWeightMap = boost::get(boost::edge_weight_t(),coarsenedGraph);

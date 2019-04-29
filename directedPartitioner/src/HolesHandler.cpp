@@ -16,7 +16,7 @@ void HolesHandler::findHolesDsc(DirectedPartition &dirPart)
     Mesh::face_index otherPartFaceDsc;
 
     faceDscStack.emplace(dirPart.lastFaceDsc);
-    originOfFaceDsc.emplace({dirPart.lastFaceDsc, dirPart.lastFaceDsc});
+    originOfFaceDsc.emplace(std::make_pair(dirPart.lastFaceDsc, dirPart.lastFaceDsc));
 
     CGAL::Face_around_face_iterator<Mesh> fafib, fafie;
     while(!exitCond)

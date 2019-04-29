@@ -10,6 +10,7 @@ find_package(OpenCV REQUIRED)
 
 add_subdirectory(labelPartitioner)
 add_subdirectory(directedPartitioner)
+add_subdirectory(ADtreePartitioner)
 
 include_directories(
                     ${CGAL_INCLUDE_DIRS}
@@ -17,6 +18,7 @@ include_directories(
                     ${OpenCV_INCLUDE_DIRS}
                     include/
                     labelPartitioner/include
+                    ADtreePartitioner/include
                     )
 
 file(GLOB_RECURSE meshPart_SOURCE
@@ -28,6 +30,7 @@ add_executable(meshPartitioner ${meshPart_SOURCE})
 target_link_libraries(meshPartitioner
                         labelPartitioner
                         directedPartitioner
+                        ADtreePartitioner
                         ${CGAL_LIBRARY}
                         ${Boost_LIBRARIES}
                         )

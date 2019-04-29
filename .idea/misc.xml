@@ -3,6 +3,8 @@
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
   <component name="CidrRootsConfiguration">
     <sourceRoots>
+      <file path="$PROJECT_DIR$/ADtreePartitioner/include" />
+      <file path="$PROJECT_DIR$/ADtreePartitioner/src" />
       <file path="$PROJECT_DIR$/directedPartitioner/include" />
       <file path="$PROJECT_DIR$/directedPartitioner/src" />
       <file path="$PROJECT_DIR$/include" />
